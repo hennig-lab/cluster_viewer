@@ -16,20 +16,19 @@ EXCLUDE_FILE = "clusters_excluded.csv"
 
 def load_neurons():
     with open(DATA_FILE, "r") as f:
-        return json.load(f)
-
+        return json.load(f)[:10]
 
 def load_exclusions():
-    if not os.path.exists(EXCLUDE_FILE):
-        return set()
     excluded = set()
+    if not os.path.exists(EXCLUDE_FILE):
+        save_exclusions(excluded)
+        return excluded
     with open(EXCLUDE_FILE, newline="") as f:
         reader = csv.reader(f)
         for row in reader:
             if len(row) >= 2:
                 excluded.add((row[0], int(row[1])))
     return excluded
-
 
 def save_exclusions(excluded):
     with open(EXCLUDE_FILE, "w", newline="") as f:
@@ -45,11 +44,11 @@ def save_exclusions(excluded):
 @app.route("/api/neurons")
 def api_neurons():
     neurons = load_neurons()
+    print(f"Loaded {len(neurons)} neurons from {DATA_FILE}")
     excluded = load_exclusions()
     for n in neurons:
         n["excluded"] = (n["filename"], n["cluster_id"]) in excluded
     return jsonify(neurons)
-
 
 @app.route("/api/toggle", methods=["POST"])
 def api_toggle():
@@ -65,11 +64,9 @@ def api_toggle():
     save_exclusions(excluded)
     return jsonify({"status": "ok", "excluded": list(excluded)})
 
-
 @app.route("/")
 def root():
     return send_from_directory("static", "index.html")
-
 
 # ---------------------------
 # Launch server

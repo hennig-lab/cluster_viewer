@@ -53,7 +53,7 @@ def load_spike_data(mat_path, nbins=50):
 
     return neurons
 
-def collect_neuron_data(directory, outfile, pattern="*_spikes.mat", nbins=50):
+def collect_neuron_data(directory, outfile, pattern="times_*.mat", nbins=50):
     """
     Finds all .mat files matching the pattern in the given directory,
     extracts neuron data using load_spike_data(), adds filename to each dict,
@@ -61,6 +61,7 @@ def collect_neuron_data(directory, outfile, pattern="*_spikes.mat", nbins=50):
     """
     search_path = os.path.join(directory, pattern)
     files = sorted(glob.glob(search_path))
+    print(f"Found {len(files)} files matching pattern '{pattern}'.")
     all_neurons = []
 
     for fpath in files:
@@ -83,18 +84,18 @@ def collect_neuron_data(directory, outfile, pattern="*_spikes.mat", nbins=50):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
-        description="Collect neuron data from *_spikes.mat files into a JSON summary."
+        description="Collect neuron data from times_*.mat files into a JSON summary."
     )
     parser.add_argument(
         "directory",
         type=str,
-        help="Directory containing *_spikes.mat files."
+        help="Directory containing times_*.mat files."
     )
     parser.add_argument(
         "--pattern",
         type=str,
-        default="*_spikes.mat",
-        help="Filename pattern to match (default: '*_spikes.mat')."
+        default="times_*.mat",
+        help="Filename pattern to match (default: 'times_*.mat')."
     )
     parser.add_argument(
         "--outfile",
