@@ -41,14 +41,15 @@ def load_spike_data(mat_path, nbins=50):
         else:
             ISI_freqs, _ = np.histogram(ISIs, bins=ISI_bins, density=True)
 
-        # Compute waveform quintiles (0%, 10%, ..., 100%)
-        quintiles = np.percentile(neuron_waveforms, np.arange(0, 110, 10), axis=0)
+        # Compute waveform quintiles (10%, 20%, ..., 90%)
+        quintiles = np.percentile(neuron_waveforms, np.arange(10, 100, 10), axis=0)
 
         neurons.append({
             'cluster_id': int(cid),
             'ISI_bins': ISI_bins[:-1],  # bin edges (left)
             'ISI_freqs': ISI_freqs,
-            'waveform_quintiles': quintiles
+            'waveform_quintiles': quintiles,
+            'firing_rate_hz': len(neuron_times) / (neuron_times[-1] - neuron_times[0]) * 1000 if len(neuron_times) > 1 else 0.0
         })
 
     return neurons
