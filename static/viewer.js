@@ -1,22 +1,44 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   async function loadData() {
+    const loading = document.getElementById('loading');
+    const grid = document.getElementById('grid');
+
+    // Show loading message
+    loading.style.display = 'block';
+    grid.style.display = 'none';
+
     const res = await fetch('/api/neurons');
     const neurons = await res.json();
-    const grid = document.getElementById('grid');
     grid.innerHTML = '';
 
-    neurons.forEach((n, idx) => {
+    // Create cards one by one
+    for (const [idx, n] of neurons.entries()) {
         const card = document.createElement('div');
         card.className = 'card' + (n.excluded ? ' excluded' : '');
         card.title = `${n.filename} | cluster ${n.cluster_id}`;
+        card.dataset.filename = n.filename;
+        card.dataset.clusterId = n.cluster_id;
         card.onclick = async () => {
-        await fetch('/api/toggle', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ filename: n.filename, cluster_id: n.cluster_id })
-        });
-        loadData();
+            const res = await fetch('/api/toggle', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ filename: n.filename, cluster_id: n.cluster_id })
+            });
+            const data = await res.json();
+            const excludedSet = new Set(data.excluded.map(e => `${e[0]}_${e[1]}`));
+
+            // Loop through all cards and update excluded class
+            document.querySelectorAll('.card').forEach(cardEl => {
+                const fname = cardEl.dataset.filename;
+                const cid = parseInt(cardEl.dataset.clusterId);
+                const key = `${fname}_${cid}`;
+                if (excludedSet.has(key)) {
+                    cardEl.classList.add('excluded');
+                } else {
+                    cardEl.classList.remove('excluded');
+                }
+            });
         };
 
         // Add a visible title
@@ -100,7 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 plugins: { legend: { display: false } }
             }
         });
-    });
+
+        // Let browser update DOM before next iteration
+        await new Promise(r => requestAnimationFrame(r));
+    }
+
+    // Hide loading, show grid
+    loading.style.display = 'none';
+    grid.style.display = 'grid';
   }
 
   loadData();

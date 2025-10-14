@@ -16,7 +16,7 @@ EXCLUDE_FILE = "clusters_excluded.csv"
 
 def load_neurons():
     with open(DATA_FILE, "r") as f:
-        return json.load(f)[:10]
+        return json.load(f)
 
 def load_exclusions():
     excluded = set()
@@ -35,7 +35,6 @@ def save_exclusions(excluded):
         writer = csv.writer(f)
         for fn, cid in sorted(excluded):
             writer.writerow([fn, cid])
-
 
 # ---------------------------
 # Routes
