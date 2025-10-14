@@ -54,19 +54,23 @@ def load_spike_data(mat_path, nbins=50):
 
     return neurons
 
-def collect_neuron_data(directory, outfile, pattern="times_*.mat", nbins=50):
+def collect_neuron_data(directory, outfile, pattern="times_*.mat", nbins=50, verbose=True):
     """
     Finds all .mat files matching the pattern in the given directory,
     extracts neuron data using load_spike_data(), adds filename to each dict,
     and saves combined results to a JSON file.
     """
+    if verbose:
+        print(f"Searching '{directory}' for '{pattern}' ...")
     search_path = os.path.join(directory, pattern)
     files = sorted(glob.glob(search_path))
-    print(f"Found {len(files)} files matching pattern '{pattern}'.")
+    if verbose:
+        print(f"Found {len(files)} files matching pattern '{pattern}'.")
     all_neurons = []
 
     for fpath in files:
-        print(f"Processing {os.path.basename(fpath)} ...")
+        if verbose:
+            print(f"Processing {os.path.basename(fpath)} ...")
         neurons = load_spike_data(fpath, nbins=nbins)
         for n in neurons:
             n['filename'] = os.path.basename(fpath)
@@ -80,7 +84,8 @@ def collect_neuron_data(directory, outfile, pattern="times_*.mat", nbins=50):
     with open(outfile, 'w') as f:
         json.dump(all_neurons, f, indent=2)
 
-    print(f"Saved {len(all_neurons)} neuron entries to {outfile}")
+    if verbose:
+        print(f"Saved {len(all_neurons)} neuron entries to {outfile}")
 
 if __name__ == "__main__":
     import argparse
@@ -110,10 +115,9 @@ if __name__ == "__main__":
         default=50,
         help="Number of log-spaced ISI bins between 1 ms and 10 s (default: 50)."
     )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()    
     outfile = args.outfile
     if outfile is None:
-        outfile = os.path.join(args.directory, "neuron_data_summary.json")
-    print(f"Searching '{args.directory}' for '{args.pattern}' ...")
-    collect_neuron_data(args.directory, outfile, pattern=args.pattern, nbins=args.nbins)
-    print(f"Done. Output saved to {outfile}")
+        outfile = os.path.join(args.directory, "neuron_data_summary.json")    
+    collect_neuron_data(args.directory, outfile, pattern=args.pattern, nbins=args.nbins, verbose=args.verbose)

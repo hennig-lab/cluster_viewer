@@ -4,6 +4,7 @@ import csv
 import json
 import webbrowser
 from flask import Flask, jsonify, request, send_from_directory
+from channel_parser import collect_neuron_data
 
 app = Flask(__name__, static_folder="static")
 
@@ -76,12 +77,24 @@ if __name__ == "__main__":
     from threading import Timer
 
     parser = argparse.ArgumentParser(description="Local viewer for neuron data.")
-    parser.add_argument("data", default="neuron_data.json", help="Path to neuron JSON file")
+    parser.add_argument("--directory", default=None, help="Path to directory containing times.mat files")
+    parser.add_argument("--jsonfile", default=None, help="Path to neuron JSON file")
     parser.add_argument("--port", type=int, default=5000, help="Port number (default 5000)")
+    parser.add_argument("--nbins", type=int, default=50, help="Number of bins (default 50)")
+    parser.add_argument("--pattern", default="times_*.mat", help="Filename pattern to match (default: 'times_*.mat')")
     parser.add_argument("--csvfile", default=None, help="Path to CSV exclusion file")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
 
-    DATA_FILE = args.data
+    if args.directory:
+        if not os.path.isdir(args.directory):
+            raise NotADirectoryError(f"{args.directory} is not a valid directory")
+        DATA_FILE = args.jsonfile if args.jsonfile else os.path.join(args.directory, "neuron_data.json")
+        collect_neuron_data(args.directory, DATA_FILE, pattern=args.pattern, nbins=args.nbins, verbose=args.verbose)
+    else:
+        if not args.jsonfile:
+            raise ValueError("Must provide --directory or --jsonfile")
+        DATA_FILE = args.jsonfile
     if not os.path.exists(DATA_FILE):
         raise FileNotFoundError(f"Cannot find {DATA_FILE}")
     EXCLUDE_FILE = args.csvfile
@@ -89,7 +102,6 @@ if __name__ == "__main__":
         EXCLUDE_FILE = os.path.join(os.path.dirname(DATA_FILE), "clusters_excluded.csv")
 
     url = f"http://127.0.0.1:{args.port}"
-
     print(f"Starting server at {url}")
     Timer(1.0, lambda: webbrowser.open(url)).start()
     app.run(debug=False, port=args.port)
