@@ -1,6 +1,6 @@
-# Unit Excluder
+# Cluster Viewer
 
-A browser-based GUI for quickly choosing which units to exclude based on spike waveforms and interspike interval (ISI) distributions.
+A browser-based GUI for quickly choosing which units to include/exclude based on spike waveforms and interspike interval (ISI) distributions.
 - Before using this tool, you must have a directory containing "times_*.mat" files, each corresponding to a single channel, as output by [wave_clus](https://github.com/csn-le/wave_clus)
 - Start the browser with `python unit_excluder.py --directory PATH_TO_YOUR_DIRECTORY`
 - Click a unit to mark it for exclusion, or click it again if you change your mind.

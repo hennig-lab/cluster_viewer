@@ -10,7 +10,7 @@ from scipy.io import loadmat, savemat
 from scipy.sparse import lil_matrix
 from scipy.stats import scoreatpercentile
 
-def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClusterZero=False, ignoreForced=False, excludedfile=None):
+def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClusterZero=False, ignoreForced=False, exclusionfile=None):
     """
     Convert *times.mat or *spikes.mat files to a sparse spike matrix (0s and 1s).
 
@@ -26,7 +26,7 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
         If True, include spikes even if cluster == 0.
     ignoreForced : bool, optional
         If True, ignore spikes marked as "forced".
-    excludedfile : str, optional
+    exclusionfile : str, optional
         If provided, path to a CSV file with (filename, cluster_id) pairs to exclude
 
     Returns
@@ -41,7 +41,7 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
     # get all .mat files in directory
     if ignoreClusters and includeClusterZero:
         allFiles = []
-        if not excludedfile: # if no excludedfile, look for spikes files first
+        if not exclusionfile: # if no exclusionfile, look for spikes files first
             allFiles = [f for f in os.listdir(directory) if f.endswith('.mat') and 'spikes' in f]
         if not allFiles: # if we still have no files, look for times files
             allFiles = [f for f in os.listdir(directory) if f.endswith('.mat') and 'times' in f]
@@ -52,19 +52,19 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
         warnings.warn(f"No *times*.mat files found in {directory}")
         return None
 
-    if excludedfile:
-        if not os.path.exists(excludedfile):
-            raise FileNotFoundError(f"Excluded file {excludedfile} not found.")
+    if exclusionfile:
+        if not os.path.exists(exclusionfile):
+            raise FileNotFoundError(f"Excluded file {exclusionfile} not found.")
         excluded = set()
         # read excluded (filename, cluster_id) pairs from file
-        with open(excludedfile, 'r') as f:
+        with open(exclusionfile, 'r') as f:
             for line in f:
                 parts = line.strip().split(',')
                 if len(parts) == 2:
                     # e.g., "times_mRF3C02_2342.mat,1"
                     row = (parts[0].strip(), int(parts[1].strip()))
                     if row[0] not in allFiles:
-                        raise Exception(f"Excluded file {row[0]} is mentioned in excludedfile but not found in directory.")
+                        raise Exception(f"Excluded file {row[0]} is mentioned in exclusionfile but not found in directory.")
                     excluded.add(row)
     else:
         excluded = set()
@@ -216,3 +216,24 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
         print(f"Saved spike matrix to {outfile}")
 
     return result
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Create sparse spike matrix from times.mat or spikes.mat files.")
+    parser.add_argument("--directory", required=True, help="Path to directory containing times.mat or spikes.mat files")
+    parser.add_argument("--outfile", default=None, help="Path to output .mat file")
+    parser.add_argument("--ignore_clusters", action="store_true", help="If set, treat all spikes on a channel as one unit")
+    parser.add_argument("--include_cluster_zero", action="store_true", help="If set, include spikes even if cluster == 0")
+    parser.add_argument("--ignore_forced", action="store_true", help="If set, ignore spikes marked as 'forced'")
+    parser.add_argument("--exclusionfile", default=None, help="Path to CSV file with (filename, cluster_id) pairs to exclude")
+    args = parser.parse_args()
+
+    make_spikes_matrix(
+        args.directory,
+        outfile=args.outfile,
+        ignoreClusters=args.ignore_clusters,
+        includeClusterZero=args.include_cluster_zero,
+        ignoreForced=args.ignore_forced,
+        exclusionfile=args.exclusionfile
+    )

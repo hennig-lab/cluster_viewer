@@ -108,5 +108,5 @@ if __name__ == "__main__":
     app.run(debug=False, port=args.port)
 
     print('Server stopped. Creating spike matrix files...')
-    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "_spikes.mat"), ignoreClusters=False, includeClusterZero=False, ignoreForced=False, excludedfile=EXCLUDE_FILE)
-    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "_spikes_perChannel.mat"), ignoreClusters=True, includeClusterZero=False, ignoreForced=False, excludedfile=EXCLUDE_FILE)
+    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "_spikes.mat"), ignoreClusters=False, includeClusterZero=False, ignoreForced=False, exclusionfile=EXCLUDE_FILE)
+    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "_spikes_perChannel.mat"), ignoreClusters=True, includeClusterZero=False, ignoreForced=False, exclusionfile=EXCLUDE_FILE)
