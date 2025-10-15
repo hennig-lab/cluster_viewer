@@ -3,7 +3,7 @@
 }
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 300px);
+    grid-template-columns: repeat(auto-fill, 200px);
     gap: 10px;
 }
 .card {
@@ -14,16 +14,13 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    height: 300px; /* 2 plots */
+    height: 300px;
 }
 .excluded {
     opacity: 0.3;
     border-color: red;
 }
-canvas {
+/* canvas {
     width: 100% !important;
     height: 150px !important;
-}
-#viewToggle {
-    margin-bottom: 10px;
-}
+} */

@@ -5,6 +5,7 @@ import json
 import webbrowser
 from flask import Flask, jsonify, request, send_from_directory
 from channel_parser import collect_neuron_data
+from make_spikes_matrix import make_spikes_matrix
 
 app = Flask(__name__, static_folder="static")
 
@@ -105,3 +106,7 @@ if __name__ == "__main__":
     print(f"Starting server at {url}")
     Timer(1.0, lambda: webbrowser.open(url)).start()
     app.run(debug=False, port=args.port)
+
+    print('Server stopped. Creating spike matrix files...')
+    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "_spikes.mat"), ignoreClusters=False, includeClusterZero=False, ignoreForced=False, excludedfile=EXCLUDE_FILE)
+    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "_spikes_perChannel.mat"), ignoreClusters=True, includeClusterZero=False, ignoreForced=False, excludedfile=EXCLUDE_FILE)

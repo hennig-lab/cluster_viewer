@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
             options: {
                 responsive: true,
                 // maintainAspectRatio: false,
+                aspectRatio: 1.2,
                 scales: {
                     x: { display: false },
                     y: {

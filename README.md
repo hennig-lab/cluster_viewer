@@ -1,10 +1,11 @@
-# Channel Browser
+# Unit Excluder
 
-A browser-based GUI for quickly choosing which units to keep or remove based on spike waveforms and interspike interval (ISI) distributions.
+A browser-based GUI for quickly choosing which units to exclude based on spike waveforms and interspike interval (ISI) distributions.
 - Before using this tool, you must have a directory containing "times_*.mat" files, each corresponding to a single channel, as output by [wave_clus](https://github.com/csn-le/wave_clus)
-- Start the browser with `python channel_browser.py --directory PATH_TO_YOUR_DIRECTORY`
-- Click a channel to mark it for removal, or click it again if you change your mind.
-- Results are saved automatically as a csv file at `PATH_TO_YOUR_DIRECTORY/clusters_excluded.csv` which lists all units (filename, cluster_id) you have marked to exclude
+- Start the browser with `python unit_excluder.py --directory PATH_TO_YOUR_DIRECTORY`
+- Click a unit to mark it for exclusion, or click it again if you change your mind.
+- Excluded units are saved automatically to `PATH_TO_YOUR_DIRECTORY/clusters_excluded.csv`
+- When you stop the server (Ctrl+C), a sparse matrix of all spike times from non-excluded units is written automatically to `PATH_TO_YOUR_DIRECTORY/_spikes.mat`
 
 # Installation
 
