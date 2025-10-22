@@ -17,9 +17,13 @@ def load_spike_data(mat_path, nbins=50):
     mat = sio.loadmat(mat_path, squeeze_me=True)
     waveforms = mat['spikes']      # shape (N, 64)
     cluster_class = mat['cluster_class']  # shape (N, 2)
+    if 'detectionLabel' in mat:
+        detection_label = mat['detectionLabel']
+    else:
+        detection_label = np.ones(waveforms.shape[0], dtype=bool)
     
-    cluster_ids = cluster_class[:, 0].astype(int)
-    spike_times = cluster_class[:, 1].astype(float)  # ms
+    cluster_ids = cluster_class[:,0].astype(int)
+    spike_times = cluster_class[:,1].astype(float) # ms
 
     # Ignore noise cluster (0)
     unique_clusters = np.unique(cluster_ids)
@@ -31,6 +35,7 @@ def load_spike_data(mat_path, nbins=50):
     neurons = []
     for cid in unique_clusters:
         neuron_mask = cluster_ids == cid
+        neuron_mask = neuron_mask & (detection_label == 1) # Apply detection label mask
         neuron_times = np.sort(spike_times[neuron_mask])
         neuron_waveforms = waveforms[neuron_mask, :]
 
@@ -40,6 +45,8 @@ def load_spike_data(mat_path, nbins=50):
             ISI_freqs = np.zeros(len(ISI_bins) - 1)
         else:
             ISI_freqs, _ = np.histogram(ISIs, bins=ISI_bins, density=True)
+            if np.isnan(ISI_freqs).any():
+                ISI_freqs[np.isnan(ISI_freqs)] = 0
 
         # Compute waveform quintiles (10%, 20%, ..., 90%)
         quintiles = np.percentile(neuron_waveforms, np.arange(10, 100, 10), axis=0)

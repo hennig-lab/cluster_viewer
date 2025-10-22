@@ -10,7 +10,7 @@ from scipy.io import loadmat, savemat
 from scipy.sparse import lil_matrix
 from scipy.stats import scoreatpercentile
 
-def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClusterZero=False, ignoreForced=False, exclusionfile=None):
+def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, exclusionfile=None):
     """
     Convert *times.mat or *spikes.mat files to a sparse spike matrix (0s and 1s).
 
@@ -26,6 +26,8 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
         If True, include spikes even if cluster == 0.
     ignoreForced : bool, optional
         If True, ignore spikes marked as "forced".
+    ignoreDuplicates : bool, optional
+        If True, ignore duplicate spikes as detected by DER
     exclusionfile : str, optional
         If provided, path to a CSV file with (filename, cluster_id) pairs to exclude
 
@@ -95,6 +97,7 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
     chan_list = []
     cluster_ids_list = []
     channel_file_names = []
+    n_spikes_excluded = []
 
     # Loop through files
     for c, fname in enumerate(allFiles):
@@ -103,9 +106,12 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
 
         if ignoreForced and 'forced' not in data:
             warnings.warn(f"ignoreForced=True but {fname} does not include 'forced' field.")
+        if ignoreDuplicates and 'detectionLabel' not in data:
+            warnings.warn(f"ignoreDuplicates=True but {fname} does not include 'detectionLabel' field.")
 
         # Extract spike data
         cell_waveforms = data.get('spikes', np.array([]))
+        detection_label = data.get('detectionLabel', np.ones(cell_waveforms.shape[0], dtype=bool)) if ignoreDuplicates else None
         if 'cluster_class' in data:
             cluster_class = np.array(data['cluster_class'][:, 0], dtype=float)
             spike_times = np.array(data['cluster_class'][:, 1], dtype=float)
@@ -151,6 +157,11 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
                     forced = np.array(data['forced']).flatten()
                     if forced.size == len(cluster_class):
                         ixc = ixc & (forced == 0)
+                if ignoreDuplicates:
+                    cur_spikes_excluded = np.sum((detection_label[ixc] != 1))
+                    ixc = ixc & (detection_label == 1) # Apply detection label mask
+                else:
+                    cur_spikes_excluded = 0
 
                 spike_inds = np.ceil(spike_times[ixc]).astype(int)
                 spike_inds = spike_inds[(spike_inds > 0) & (spike_inds <= spikes.shape[1])]
@@ -165,6 +176,7 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
                 chan_list.append(chan_inds[c])
                 cluster_ids_list.append(cluster_id)
                 channel_file_names.append(fname)
+                n_spikes_excluded.append(cur_spikes_excluded)
                 u += 1
         else:
             print(f"Note: No spikes found on channel {chan_inds[c]}")
@@ -172,6 +184,7 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
             cluster_ids_list.append(np.nan)
             channel_file_names.append(fname)
             waveform_list.append(np.full((cell_waveforms.shape[1] if cell_waveforms.ndim > 1 else 1,), np.nan))
+            n_spikes_excluded.append(0)
             u += 1
 
     # Trim spike matrix
@@ -189,6 +202,7 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
     waveform = waveform[sort_order, :]
     spikes = spikes[sort_order, :]
     channel_file_names = [channel_file_names[i] for i in sort_order]
+    n_spikes_excluded = np.array(n_spikes_excluded)[sort_order]
 
     # Construct params struct
     params = {
@@ -196,7 +210,7 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
         'ignoreClusters': ignoreClusters,
         'includeClusterZero': includeClusterZero,
         'ignoreForced': ignoreForced,
-        'clustersExcluded': list(excluded),
+        'ignoreDuplicates': ignoreDuplicates,
         'timeNow': datetime.now().isoformat()
     }
 
@@ -208,11 +222,14 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
         spikes=spikes.astype(bool).tocsc(),
         waveform=waveform,
         channel_file_names=channel_file_names,
+        n_spikes_excluded=n_spikes_excluded,
+        clusters_excluded=list(excluded)
     )
 
     # Save output if requested
     if outfile:
-        savemat(outfile, result, do_compression=True)
+        print(str(outfile))
+        savemat(str(outfile), result, do_compression=True)
         print(f"Saved spike matrix to {outfile}")
 
     return result
@@ -226,6 +243,7 @@ if __name__ == "__main__":
     parser.add_argument("--ignore_clusters", action="store_true", help="If set, treat all spikes on a channel as one unit")
     parser.add_argument("--include_cluster_zero", action="store_true", help="If set, include spikes even if cluster == 0")
     parser.add_argument("--ignore_forced", action="store_true", help="If set, ignore spikes marked as 'forced'")
+    parser.add_argument("--ignore_duplicates", action="store_true", help="If set, ignore duplicate spikes")
     parser.add_argument("--exclusionfile", default=None, help="Path to CSV file with (filename, cluster_id) pairs to exclude")
     args = parser.parse_args()
 
@@ -235,5 +253,6 @@ if __name__ == "__main__":
         ignoreClusters=args.ignore_clusters,
         includeClusterZero=args.include_cluster_zero,
         ignoreForced=args.ignore_forced,
+        ignoreDuplicates=args.ignore_duplicates,
         exclusionfile=args.exclusionfile
     )
