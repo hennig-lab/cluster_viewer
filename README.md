@@ -12,3 +12,7 @@ A browser-based GUI for quickly choosing which units to include/exclude based on
 Requirements: `numpy`, `scipy`, `flask`
 
 Tested with: Python 3.9.13, `numpy==1.24.4`, `scipy==1.9.1`, `flask==1.1.2`, but other versions will likely work.
+
+# Contributing
+
+If you modify any part of this codebase, please install the python package `pytest` and then run `pytest -s` in a terminal to ensure all tests pass.
