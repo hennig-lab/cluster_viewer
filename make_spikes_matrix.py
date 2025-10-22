@@ -179,13 +179,13 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
                 n_spikes_excluded.append(cur_spikes_excluded)
                 u += 1
         else:
-            print(f"Note: No spikes found on channel {chan_inds[c]}")
-            chan_list.append(chan_inds[c])
-            cluster_ids_list.append(np.nan)
-            channel_file_names.append(fname)
-            waveform_list.append(np.full((cell_waveforms.shape[1] if cell_waveforms.ndim > 1 else 1,), np.nan))
-            n_spikes_excluded.append(0)
-            u += 1
+            print(f"WARNING: No spikes found on channel {chan_inds[c]}, so will skip this channel.")
+            # chan_list.append(chan_inds[c])
+            # cluster_ids_list.append(np.nan)
+            # channel_file_names.append(fname)
+            # waveform_list.append(np.full((cell_waveforms.shape[1] if cell_waveforms.ndim > 1 else 1,), np.nan))
+            # n_spikes_excluded.append(0)
+            # u += 1
 
     # Trim spike matrix
     spikes = spikes[:u, :]
@@ -223,7 +223,7 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
         waveform=waveform,
         channel_file_names=channel_file_names,
         n_spikes_excluded=n_spikes_excluded,
-        clusters_excluded=list(excluded)
+        clusters_excluded=list([','.join([str(x) for x in parts]) for parts in excluded])
     )
 
     # Save output if requested
