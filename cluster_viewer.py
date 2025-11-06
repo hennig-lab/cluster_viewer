@@ -85,6 +85,7 @@ if __name__ == "__main__":
     parser.add_argument("--pattern", default="times_*.mat", help="Filename pattern to match (default: 'times_*.mat')")
     parser.add_argument("--csvfile", default=None, help="Path to CSV exclusion file")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument("--skip_empty_channels", action="store_true", help="If set, skips channels without spikes (note this will affect channel indexing)")
     args = parser.parse_args()
 
     if args.directory:
@@ -108,5 +109,5 @@ if __name__ == "__main__":
     app.run(debug=False, port=args.port)
 
     print('Server stopped. Creating spike matrix files...')
-    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "_spikes.mat"), ignoreClusters=False, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, exclusionfile=EXCLUDE_FILE)
-    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "_spikes_perChannel.mat"), ignoreClusters=True, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, exclusionfile=EXCLUDE_FILE)
+    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "_spikes.mat"), ignoreClusters=False, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, skipEmptyChannels=args.skip_empty_channels, exclusionfile=EXCLUDE_FILE)
+    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "_spikes_perChannel.mat"), ignoreClusters=True, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, skipEmptyChannels=args.skip_empty_channels, exclusionfile=EXCLUDE_FILE)

@@ -10,7 +10,7 @@ from scipy.io import loadmat, savemat
 from scipy.sparse import lil_matrix
 from scipy.stats import scoreatpercentile
 
-def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, exclusionfile=None):
+def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, skipEmptyChannels=False, exclusionfile=None):
     """
     Convert *times.mat or *spikes.mat files to a sparse spike matrix (0s and 1s).
 
@@ -179,13 +179,15 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
                 n_spikes_excluded.append(cur_spikes_excluded)
                 u += 1
         else:
-            print(f"WARNING: No spikes found on channel {chan_inds[c]}, so will skip this channel.")
-            # chan_list.append(chan_inds[c])
-            # cluster_ids_list.append(np.nan)
-            # channel_file_names.append(fname)
-            # waveform_list.append(np.full((cell_waveforms.shape[1] if cell_waveforms.ndim > 1 else 1,), np.nan))
-            # n_spikes_excluded.append(0)
-            # u += 1
+            if skipEmptyChannels:
+                print(f"WARNING: No spikes found on channel {chan_inds[c]}, so will skip this channel.")
+            else:
+                chan_list.append(chan_inds[c])
+                cluster_ids_list.append(np.nan)
+                channel_file_names.append(fname)
+                waveform_list.append(np.full((cell_waveforms.shape[1] if cell_waveforms.ndim > 1 else 1,), np.nan))
+                n_spikes_excluded.append(0)
+                u += 1
 
     # Trim spike matrix
     spikes = spikes[:u, :]
@@ -244,6 +246,7 @@ if __name__ == "__main__":
     parser.add_argument("--include_cluster_zero", action="store_true", help="If set, include spikes even if cluster == 0")
     parser.add_argument("--ignore_forced", action="store_true", help="If set, ignore spikes marked as 'forced'")
     parser.add_argument("--ignore_duplicates", action="store_true", help="If set, ignore duplicate spikes")
+    parser.add_argument("--skip_empty_channels", action="store_true", help="If set, skips channels without spikes (note this will affect channel indexing)")
     parser.add_argument("--exclusionfile", default=None, help="Path to CSV file with (filename, cluster_id) pairs to exclude")
     args = parser.parse_args()
 
@@ -254,5 +257,6 @@ if __name__ == "__main__":
         includeClusterZero=args.include_cluster_zero,
         ignoreForced=args.ignore_forced,
         ignoreDuplicates=args.ignore_duplicates,
+        skipEmptyChannels=args.skip_empty_channels,
         exclusionfile=args.exclusionfile
     )
