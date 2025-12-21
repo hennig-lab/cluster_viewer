@@ -35,7 +35,12 @@ def load_spike_data(mat_path, nbins=50):
     neurons = []
     for cid in unique_clusters:
         neuron_mask = cluster_ids == cid
-        neuron_mask = neuron_mask & (detection_label == 1) # Apply detection label mask
+        neuron_mask = neuron_mask & (detection_label == 1)
+        if not neuron_mask.any():
+            print(f'WARNING: in {mat_path=}, skipping cluster {cid} without spikes: {cid=}')
+            continue
+
+        # Apply detection label mask
         neuron_times = np.sort(spike_times[neuron_mask])
         neuron_waveforms = waveforms[neuron_mask, :]
 
@@ -126,5 +131,7 @@ if __name__ == "__main__":
     args = parser.parse_args()    
     outfile = args.outfile
     if outfile is None:
-        outfile = os.path.join(args.directory, "neuron_data_summary.json")    
+        savedir = os.path.join(args.directory, "cluster_viewer_results")
+        os.makedirs(savedir, exist_ok=True)
+        outfile = os.path.join(savedir, "neuron_data.json")
     collect_neuron_data(args.directory, outfile, pattern=args.pattern, nbins=args.nbins, verbose=args.verbose)
