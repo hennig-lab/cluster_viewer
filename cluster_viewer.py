@@ -6,6 +6,7 @@ import webbrowser
 from flask import Flask, jsonify, request, send_from_directory
 from channel_parser import collect_neuron_data
 from make_spikes_matrix import make_spikes_matrix
+from make_nwb_spikes_file import make_nwb_spikes_file
 
 app = Flask(__name__, static_folder="static")
 
@@ -86,6 +87,8 @@ if __name__ == "__main__":
     parser.add_argument("--csvfile", default=None, help="Path to CSV exclusion file")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("--skip_empty_channels", action="store_true", help="If set, skips channels without spikes (note this will affect channel indexing)")
+    parser.add_argument("--format", default="nwb", choices=["nwb", "mat"], help="Output format: 'nwb' (default) or 'mat'")
+    parser.add_argument("--sampling_rate", type=float, default=30000.0, help="Sampling rate in Hz (default: 30000, only used for NWB format)")
     args = parser.parse_args()
 
     if args.directory:
@@ -111,6 +114,53 @@ if __name__ == "__main__":
     Timer(1.0, lambda: webbrowser.open(url)).start()
     app.run(debug=False, port=args.port)
 
-    print('Server stopped. Creating spike matrix files...')
-    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes.mat"), ignoreClusters=False, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, skipEmptyChannels=args.skip_empty_channels, exclusionfile=EXCLUDE_FILE)
-    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes_perChannel.mat"), ignoreClusters=True, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, skipEmptyChannels=args.skip_empty_channels, exclusionfile=EXCLUDE_FILE)
+    print(f'Server stopped. Creating spike files in {args.format.upper()} format...')
+
+    if args.format == 'nwb':
+        # Create NWB files
+        make_nwb_spikes_file(
+            args.directory,
+            outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes.nwb"),
+            ignoreClusters=False,
+            includeClusterZero=False,
+            ignoreForced=False,
+            ignoreDuplicates=True,
+            skipEmptyChannels=args.skip_empty_channels,
+            exclusionfile=EXCLUDE_FILE,
+            sampling_rate=args.sampling_rate,
+            session_description="Spike sorting session - clustered",
+        )
+        make_nwb_spikes_file(
+            args.directory,
+            outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes_perChannel.nwb"),
+            ignoreClusters=True,
+            includeClusterZero=False,
+            ignoreForced=False,
+            ignoreDuplicates=True,
+            skipEmptyChannels=args.skip_empty_channels,
+            exclusionfile=EXCLUDE_FILE,
+            sampling_rate=args.sampling_rate,
+            session_description="Spike sorting session - per channel",
+        )
+    else:  # mat format
+        # Create MAT files
+        make_spikes_matrix(
+            args.directory,
+            outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes.mat"),
+            ignoreClusters=False,
+            includeClusterZero=False,
+            ignoreForced=False,
+            ignoreDuplicates=True,
+            skipEmptyChannels=args.skip_empty_channels,
+            exclusionfile=EXCLUDE_FILE
+        )
+        make_spikes_matrix(
+            args.directory,
+            outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes_perChannel.mat"),
+            ignoreClusters=True,
+            includeClusterZero=False,
+            ignoreForced=False,
+            ignoreDuplicates=True,
+            skipEmptyChannels=args.skip_empty_channels,
+            exclusionfile=EXCLUDE_FILE
+        )
