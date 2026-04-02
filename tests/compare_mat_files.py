@@ -11,7 +11,7 @@ FIELDS = [
     "n_spikes_excluded",
     "clusters_excluded",
 ]
-FIELDS_TO_IGNORE = ['timeNow']
+FIELDS_TO_IGNORE = ['timeNow', "__header__",]
 
 def compare_struct_fields(s1, s2, fields=FIELDS, tol=0, verbose=True, prefix="", fields_to_ignore=FIELDS_TO_IGNORE):
     """
