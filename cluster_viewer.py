@@ -85,6 +85,7 @@ if __name__ == "__main__":
     parser.add_argument("--pattern", default="times_*.mat", help="Filename pattern to match (default: 'times_*.mat')")
     parser.add_argument("--csvfile", default=None, help="Path to CSV exclusion file")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument("--keep_duplicates", action="store_true", help="Keep duplicates (if DER labels are included)")
     parser.add_argument("--skip_empty_channels", action="store_true", help="If set, skips channels without spikes (note this will affect channel indexing)")
     args = parser.parse_args()
 
@@ -94,7 +95,7 @@ if __name__ == "__main__":
         savedir = os.path.join(args.directory, "cluster_viewer_results")
         os.makedirs(savedir, exist_ok=True)
         DATA_FILE = args.jsonfile if args.jsonfile else os.path.join(savedir, DATA_FILE)
-        collect_neuron_data(args.directory, DATA_FILE, pattern=args.pattern, nbins=args.nbins, verbose=args.verbose)
+        collect_neuron_data(args.directory, DATA_FILE, pattern=args.pattern, nbins=args.nbins, verbose=args.verbose, keep_duplicates=args.keep_duplicates)
     else:
         if not args.jsonfile:
             raise ValueError("Must provide --directory or --jsonfile")
@@ -112,5 +113,5 @@ if __name__ == "__main__":
     app.run(debug=False, port=args.port)
 
     print('Server stopped. Creating spike matrix files...')
-    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes.mat"), ignoreClusters=False, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, skipEmptyChannels=args.skip_empty_channels, exclusionfile=EXCLUDE_FILE)
-    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes_perChannel.mat"), ignoreClusters=True, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=True, skipEmptyChannels=args.skip_empty_channels, exclusionfile=EXCLUDE_FILE)
+    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes.mat"), ignoreClusters=False, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=not args.keep_duplicates, skipEmptyChannels=args.skip_empty_channels, exclusionfile=EXCLUDE_FILE)
+    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes_perChannel.mat"), ignoreClusters=True, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=not args.keep_duplicates, skipEmptyChannels=args.skip_empty_channels, exclusionfile=EXCLUDE_FILE)

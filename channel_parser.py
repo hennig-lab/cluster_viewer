@@ -4,7 +4,7 @@ import glob
 import numpy as np
 import scipy.io as sio
 
-def load_spike_data(mat_path, nbins=50):
+def load_spike_data(mat_path, nbins=50, keep_duplicates=False):
     """
     Loads a MATLAB struct containing spike waveforms and cluster_class info.
     Returns a list of dicts, one per neuron (excluding cluster 0 / noise).
@@ -17,7 +17,7 @@ def load_spike_data(mat_path, nbins=50):
     mat = sio.loadmat(mat_path, squeeze_me=True)
     waveforms = mat['spikes']      # shape (N, 64)
     cluster_class = mat['cluster_class']  # shape (N, 2)
-    if 'detectionLabel' in mat:
+    if 'detectionLabel' in mat and not keep_duplicates:
         detection_label = mat['detectionLabel']
     else:
         detection_label = np.ones(waveforms.shape[0], dtype=bool)
@@ -66,7 +66,7 @@ def load_spike_data(mat_path, nbins=50):
 
     return neurons
 
-def collect_neuron_data(directory, outfile, pattern="times_*.mat", nbins=50, verbose=True):
+def collect_neuron_data(directory, outfile, pattern="times_*.mat", nbins=50, verbose=True, keep_duplicates=False):
     """
     Finds all .mat files matching the pattern in the given directory,
     extracts neuron data using load_spike_data(), adds filename to each dict,
@@ -83,7 +83,7 @@ def collect_neuron_data(directory, outfile, pattern="times_*.mat", nbins=50, ver
     for fpath in files:
         if verbose:
             print(f"Processing {os.path.basename(fpath)} ...")
-        neurons = load_spike_data(fpath, nbins=nbins)
+        neurons = load_spike_data(fpath, nbins=nbins, keep_duplicates=keep_duplicates)
         for n in neurons:
             n['filename'] = os.path.basename(fpath)
             # Convert numpy arrays to lists for JSON compatibility
