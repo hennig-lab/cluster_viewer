@@ -1,6 +1,36 @@
  body {
     font-family: sans-serif; margin: 10px;
 }
+#toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+#export-btn {
+    padding: 6px 14px;
+    border: 1px solid #999;
+    border-radius: 5px;
+    background: #f0f0f0;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#export-btn:hover:not(:disabled) {
+    background: #e0e0e0;
+}
+
+#export-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+#export-status {
+    font-size: 13px;
+    color: #555;
+}
+
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, 200px);

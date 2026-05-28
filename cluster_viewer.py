@@ -9,23 +9,24 @@ from make_spikes_matrix import make_spikes_matrix
 
 app = Flask(__name__, static_folder="static")
 
-DATA_FILE = "neuron_data.json"
-EXCLUDE_FILE = "clusters_excluded.csv"
+app.config["DATA_FILE"] = "neuron_data.json"
+app.config["EXCLUDE_FILE"] = "clusters_excluded.csv"
+app.config["EXPORT_ARGS"] = None
 
 # ---------------------------
 # Helpers
 # ---------------------------
 
 def load_neurons():
-    with open(DATA_FILE, "r") as f:
+    with open(app.config["DATA_FILE"], "r") as f:
         return json.load(f)
 
 def load_exclusions():
     excluded = set()
-    if not os.path.exists(EXCLUDE_FILE):
+    if not os.path.exists(app.config["EXCLUDE_FILE"]):
         save_exclusions(excluded)
         return excluded
-    with open(EXCLUDE_FILE, newline="") as f:
+    with open(app.config["EXCLUDE_FILE"], newline="") as f:
         reader = csv.reader(f)
         for row in reader:
             if len(row) >= 2:
@@ -33,7 +34,7 @@ def load_exclusions():
     return excluded
 
 def save_exclusions(excluded):
-    with open(EXCLUDE_FILE, "w", newline="") as f:
+    with open(app.config["EXCLUDE_FILE"], "w", newline="") as f:
         writer = csv.writer(f)
         for fn, cid in sorted(excluded):
             writer.writerow([fn, cid])
@@ -45,7 +46,7 @@ def save_exclusions(excluded):
 @app.route("/api/neurons")
 def api_neurons():
     neurons = load_neurons()
-    print(f"Loaded {len(neurons)} neurons from {DATA_FILE}")
+    print(f"Loaded {len(neurons)} neurons from {app.config['DATA_FILE']}")
     excluded = load_exclusions()
     for n in neurons:
         n["excluded"] = (n["filename"], n["cluster_id"]) in excluded
@@ -64,6 +65,23 @@ def api_toggle():
         excluded.add(key)
     save_exclusions(excluded)
     return jsonify({"status": "ok", "excluded": list(excluded)})
+
+def export_spike_matrices():
+    a = app.config["EXPORT_ARGS"]
+    if a is None:
+        return
+    outdir = os.path.join(a.directory, "cluster_viewer_results")
+    exclude_file = app.config["EXCLUDE_FILE"]
+    print('Creating spike matrix files...')
+    make_spikes_matrix(a.directory, outfile=os.path.join(outdir, "spikes.mat"), ignoreClusters=False, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=not a.keep_duplicates, skipEmptyChannels=a.skip_empty_channels, exclusionfile=exclude_file)
+    make_spikes_matrix(a.directory, outfile=os.path.join(outdir, "spikes_perChannel.mat"), ignoreClusters=True, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=not a.keep_duplicates, skipEmptyChannels=a.skip_empty_channels, exclusionfile=exclude_file)
+
+@app.route("/api/export", methods=["POST"])
+def api_export():
+    if app.config["EXPORT_ARGS"] is None:
+        return jsonify({"status": "error", "message": "Export not available (no directory set)"}), 400
+    export_spike_matrices()
+    return jsonify({"status": "ok"})
 
 @app.route("/")
 def root():
@@ -87,6 +105,7 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("--keep_duplicates", action="store_true", help="Keep duplicates (if DER labels are included)")
     parser.add_argument("--skip_empty_channels", action="store_true", help="If set, skips channels without spikes (note this will affect channel indexing)")
+
     args = parser.parse_args()
 
     if args.directory:
@@ -94,24 +113,21 @@ if __name__ == "__main__":
             raise NotADirectoryError(f"{args.directory} is not a valid directory")
         savedir = os.path.join(args.directory, "cluster_viewer_results")
         os.makedirs(savedir, exist_ok=True)
-        DATA_FILE = args.jsonfile if args.jsonfile else os.path.join(savedir, DATA_FILE)
-        collect_neuron_data(args.directory, DATA_FILE, pattern=args.pattern, nbins=args.nbins, verbose=args.verbose, keep_duplicates=args.keep_duplicates)
+        app.config["DATA_FILE"] = args.jsonfile if args.jsonfile else os.path.join(savedir, app.config["DATA_FILE"])
+        collect_neuron_data(args.directory, app.config["DATA_FILE"], pattern=args.pattern, nbins=args.nbins, verbose=args.verbose, keep_duplicates=args.keep_duplicates)
+        app.config["EXPORT_ARGS"] = args
     else:
         if not args.jsonfile:
             raise ValueError("Must provide --directory or --jsonfile")
-        DATA_FILE = args.jsonfile
-    if not os.path.exists(DATA_FILE):
-        raise FileNotFoundError(f"Cannot find {DATA_FILE}")
+        app.config["DATA_FILE"] = args.jsonfile
+    if not os.path.exists(app.config["DATA_FILE"]):
+        raise FileNotFoundError(f"Cannot find {app.config['DATA_FILE']}")
     if args.csvfile is not None:
-        EXCLUDE_FILE = args.csvfile
+        app.config["EXCLUDE_FILE"] = args.csvfile
     else:
-        EXCLUDE_FILE = os.path.join(os.path.dirname(DATA_FILE), EXCLUDE_FILE)
+        app.config["EXCLUDE_FILE"] = os.path.join(os.path.dirname(app.config["DATA_FILE"]), app.config["EXCLUDE_FILE"])
 
     url = f"http://127.0.0.1:{args.port}"
     print(f"Starting server at {url}")
     Timer(1.0, lambda: webbrowser.open(url)).start()
     app.run(debug=False, port=args.port)
-
-    print('Server stopped. Creating spike matrix files...')
-    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes.mat"), ignoreClusters=False, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=not args.keep_duplicates, skipEmptyChannels=args.skip_empty_channels, exclusionfile=EXCLUDE_FILE)
-    make_spikes_matrix(args.directory, outfile=os.path.join(args.directory, "cluster_viewer_results", "spikes_perChannel.mat"), ignoreClusters=True, includeClusterZero=False, ignoreForced=False, ignoreDuplicates=not args.keep_duplicates, skipEmptyChannels=args.skip_empty_channels, exclusionfile=EXCLUDE_FILE)

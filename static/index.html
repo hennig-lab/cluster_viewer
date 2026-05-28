@@ -8,8 +8,27 @@
 </head>
 <body>
   <h2>Cluster Viewer</h2>
+  <div id="toolbar">
+    <button id="export-btn" onclick="exportSpikes()">Export spike matrices</button>
+    <span id="export-status"></span>
+  </div>
   <div id="loading">Loading...</div>
   <div id="grid" class="grid"></div>
   <script src="static/viewer.js"></script>
+  <script>
+    function exportSpikes() {
+      const btn = document.getElementById('export-btn');
+      const status = document.getElementById('export-status');
+      btn.disabled = true;
+      status.textContent = 'Exporting...';
+      fetch('/api/export', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          status.textContent = data.status === 'ok' ? 'Done.' : ('Error: ' + data.message);
+        })
+        .catch(() => { status.textContent = 'Request failed.'; })
+        .finally(() => { btn.disabled = false; });
+    }
+  </script>
 </body>
 </html>
