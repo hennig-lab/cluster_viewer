@@ -68,6 +68,7 @@ def make_spikes_matrix(directory, outfile=None, ignoreClusters=False, includeClu
                     if row[0] not in allFiles:
                         raise Exception(f"Excluded file {row[0]} is mentioned in exclusionfile but not found in directory.")
                     excluded.add(row)
+        excluded = sorted(excluded)
     else:
         excluded = set()
 

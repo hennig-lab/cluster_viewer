@@ -51,7 +51,7 @@ def compare_struct_fields(s1, s2, fields=FIELDS, tol=0, verbose=True, prefix="",
         if a.dtype.kind in {'U', 'S'} or b.dtype.kind in {'U', 'S'}:
             eq = np.array_equal(a, b)
             if not eq and verbose:
-                print(f"{path}: char arrays differ")
+                print(f"{path}: char arrays differ", a, b)
             return eq
 
         # Boolean arrays
