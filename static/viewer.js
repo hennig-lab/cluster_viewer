@@ -43,7 +43,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Add a visible title
         const titleEl = document.createElement('div');
-        titleEl.innerText = `${n.filename} - cluster ${n.cluster_id} (${n.firing_rate_hz.toFixed(1)} Hz)`;
+        // display model_prob if available
+        // strrep '.mat' in filename
+        let filename = n.filename.replace('.mat', '').replace('times_', '');
+        titleEl.innerText = `${filename} - c${n.cluster_id} (${n.firing_rate_hz.toFixed(1)} Hz)`;
+
+        let modelPred = '';
+        if (n.model_prob !== undefined) {
+            // get color from red (0%) to green (100%) based on model_prob
+            let color = `rgb(${Math.round(255 * (1 - n.model_prob))}, ${Math.round(255 * n.model_prob)}, 0)`;
+            const modelSpan = document.createElement('span');
+            modelSpan.innerText = ` ${(n.model_prob * 100).toFixed(0)}%`;
+            modelSpan.style.color = color;
+            titleEl.appendChild(document.createTextNode(`${filename} - c${n.cluster_id} (${n.firing_rate_hz.toFixed(1)} Hz)`));
+            titleEl.appendChild(modelSpan);
+        }
         titleEl.style.fontSize = '12px';
         titleEl.style.marginBottom = '4px';
         titleEl.style.fontWeight = 'bold';

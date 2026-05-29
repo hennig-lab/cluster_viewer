@@ -4,9 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
-
-from data_loader import load_sessions
-
+from training.data_loader import load_sessions
 
 class Classifier(nn.Module):
     def __init__(self, input_size, hidden_size=32):
@@ -25,7 +23,7 @@ class Classifier(nn.Module):
 
 
 def load_model(path):
-    checkpoint = torch.load(path, weights_only=True)
+    checkpoint = torch.load(path, weights_only=False)
     state             = checkpoint["state_dict"]
     mean              = checkpoint["mean"]
     std               = checkpoint["std"]
@@ -166,14 +164,14 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs",     type=int,   default=50)
+    parser.add_argument("--epochs",     type=int,   default=1000)
     parser.add_argument("--batch-size", type=int,   default=32)
     parser.add_argument("--lr",         type=float, default=1e-3)
     parser.add_argument("--test-size",  type=float, default=0.2,  help="fraction of data for test set")
     parser.add_argument("--split-seed", type=int,   default=42,   help="seed for train/test split")
     parser.add_argument("--model-seed", type=int,   default=0,    help="seed for model weight init")
     parser.add_argument("--log-every",  type=int,   default=10,   help="print metrics every N epochs")
-    parser.add_argument("--patience",   type=int,   default=None, help="early stopping patience (epochs); disabled if not set")
+    parser.add_argument("--patience",   type=int,   default=10, help="early stopping patience (epochs); disabled if not set")
     parser.add_argument("--hidden-size",  type=int,  default=32,    help="size of hidden layer")
     parser.add_argument("--output",       type=str,  default='model', help="name of file to save best model weights (.pt)")
     parser.add_argument("--normalize",         action="store_true", help="standardize input features before training")

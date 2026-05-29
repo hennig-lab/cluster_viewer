@@ -3,6 +3,7 @@ import os
 import csv
 import json
 import webbrowser
+import math
 from flask import Flask, jsonify, request, send_from_directory
 from channel_parser import collect_neuron_data
 from make_spikes_matrix import make_spikes_matrix
@@ -68,7 +69,7 @@ def api_neurons():
         n["excluded"] = (n["filename"], n["cluster_id"]) in excluded
         if app.config["MODEL_FILE"] is not None:
             n["model_feature"] = get_neuron_feature(n)
-            n["model_logit"] = model(n["model_feature"])
+            n["model_prob"] = 1 / (1 + math.exp(-model(n["model_feature"])))
     return jsonify(neurons)
 
 @app.route("/api/toggle", methods=["POST"])
@@ -147,6 +148,7 @@ if __name__ == "__main__":
         app.config["EXCLUDE_FILE"] = args.csvfile
     else:
         app.config["EXCLUDE_FILE"] = os.path.join(os.path.dirname(app.config["DATA_FILE"]), app.config["EXCLUDE_FILE"])
+    app.config["MODEL_FILE"] = args.model_file
 
     url = f"http://127.0.0.1:{args.port}"
     print(f"Starting server at {url}")
