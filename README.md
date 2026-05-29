@@ -5,7 +5,13 @@ A browser-based GUI for quickly choosing which units to include/exclude based on
 - Start the browser with `uv run python cluster_viewer.py --directory PATH_TO_YOUR_DIRECTORY`
 - Click a unit to mark it for exclusion, or click it again if you change your mind.
 - Excluded units are saved automatically to `PATH_TO_YOUR_DIRECTORY/cluster_viewer_results/clusters_excluded.csv`
-- When you stop the server (Ctrl+C), a sparse matrix of all spike times from non-excluded units is written automatically to `PATH_TO_YOUR_DIRECTORY/cluster_viewer_results/spikes.mat`
+- When you hit the `Export` button, a sparse matrix of all spike times from non-excluded units is written to `PATH_TO_YOUR_DIRECTORY/cluster_viewer_results/spikes.mat`
+
+## Automatic cluster selection
+
+To get a spike matrix of spike times without any manual intervention, run: `uv run python cluster_viewer.py --directory PATH_TO_YOUR_DIRECTORY --skip_manual`
+
+This will export a spike matrix to `PATH_TO_YOUR_DIRECTORY/cluster_viewer_results/spikes_auto.mat`
 
 # Installation
 
