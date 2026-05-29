@@ -3,6 +3,11 @@ import csv
 import json
 import numpy as np
 
+def get_neuron_feature(n):
+    waveforms = n['waveform_quintiles']
+    middle = len(waveforms) // 2
+    return waveforms[middle]
+
 def load_neuron_features(data_file):
     if not os.path.exists(data_file):
         raise FileNotFoundError(f"Data file {data_file} not found")
@@ -12,8 +17,8 @@ def load_neuron_features(data_file):
     
     features = []
     for n in neurons:
-        n['name'] = (n['filename'], n['cluster_id'])
-        n['waveforms'] = n['waveform_quintiles']
+        n['feature_key'] = (n['filename'], n['cluster_id'])
+        n['feature'] = get_neuron_feature(n)
         features.append(n)
     return features
 
@@ -32,10 +37,8 @@ def get_training_data(neurons, excluded):
     X = []
     y = []
     for n in neurons:
-        waveforms = n['waveforms']
-        middle = len(waveforms) // 2
-        Xc = waveforms[middle]
-        yc = 0 if n['name'] in excluded else 1
+        Xc = n['feature']
+        yc = 0 if n['feature_key'] in excluded else 1
         X.append(Xc)
         y.append(yc)
     return X, y

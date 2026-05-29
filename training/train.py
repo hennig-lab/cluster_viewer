@@ -24,6 +24,38 @@ class Classifier(nn.Module):
         return self.net(x).squeeze(1)
 
 
+def load_model(path):
+    checkpoint = torch.load(path, weights_only=True)
+    state             = checkpoint["state_dict"]
+    mean              = checkpoint["mean"]
+    std               = checkpoint["std"]
+    normalize_samples = checkpoint.get("normalize_samples", False)
+    if "net.0.weight" in state:
+        input_size  = state["net.0.weight"].shape[1]
+        hidden_size = state["net.0.weight"].shape[0]
+    else:
+        input_size  = state["net.weight"].shape[1]
+        hidden_size = 0
+    model = Classifier(input_size=input_size, hidden_size=hidden_size)
+    model.load_state_dict(state)
+    model.eval()
+    return model, mean, std, normalize_samples
+
+def load_model_predictor(path):
+    model, mean, std, normalize_samples = load_model(path)
+    def predictor(feature):
+        x = np.array(feature, dtype=np.float32)
+        if normalize_samples:
+            sample_min = x.min()
+            if sample_min == 0:
+                sample_min = 1.0
+            x = x / sample_min
+        x = (x - mean) / std
+        with torch.no_grad():
+            logit = model(torch.tensor(x, dtype=torch.float32).unsqueeze(0)).item()
+        return logit
+    return predictor
+
 def train(model, loader, optimizer, criterion):
     model.train()
     total_loss = 0.0
@@ -57,12 +89,27 @@ def main(args):
     print(f"Loaded {len(X)} samples, {X.shape[1]} features, "
           f"{y.sum()} positive / {(y == 0).sum()} negative")
 
+    if args.normalize_samples:
+        sample_min = X.min(axis=1, keepdims=True)
+        sample_min[sample_min == 0] = 1.0
+        X = X / sample_min
+
     rng = np.random.default_rng(args.split_seed)
     idx = rng.permutation(len(X))
     split = int(len(X) * (1.0 - args.test_size))
     train_idx, test_idx = idx[:split], idx[split:]
     X_train, X_test = X[train_idx], X[test_idx]
     y_train, y_test = y[train_idx], y[test_idx]
+
+    if args.normalize:
+        mean = X_train.mean(axis=0)
+        std  = X_train.std(axis=0)
+        std[std == 0] = 1.0
+        X_train = (X_train - mean) / std
+        X_test  = (X_test  - mean) / std
+    else:
+        mean = np.zeros(X_train.shape[1])
+        std  = np.ones(X_train.shape[1])
 
     X_train = torch.tensor(X_train, dtype=torch.float32)
     X_test  = torch.tensor(X_test,  dtype=torch.float32)
@@ -108,8 +155,14 @@ def main(args):
     print(f"\nBest model (epoch {best_epoch}) | test loss {best_test_loss:.4f} | test acc {best_test_acc:.3f}")
 
     if args.output:
-        torch.save(best_state, args.output)
-        print(f"Saved to {args.output}")
+        path = os.path.join(base_dir, args.output + ".pt")
+        torch.save({
+            "state_dict":       best_state,
+            "mean":             mean,
+            "std":              std,
+            "normalize_samples": args.normalize_samples,
+        }, path)
+        print(f"Saved to {path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -121,6 +174,8 @@ if __name__ == "__main__":
     parser.add_argument("--model-seed", type=int,   default=0,    help="seed for model weight init")
     parser.add_argument("--log-every",  type=int,   default=10,   help="print metrics every N epochs")
     parser.add_argument("--patience",   type=int,   default=None, help="early stopping patience (epochs); disabled if not set")
-    parser.add_argument("--hidden-size", type=int,  default=32,   help="size of hidden layer")
-    parser.add_argument("--output",      type=str,  default=None, help="path to save best model weights (.pt)")
+    parser.add_argument("--hidden-size",  type=int,  default=32,    help="size of hidden layer")
+    parser.add_argument("--output",       type=str,  default='model', help="name of file to save best model weights (.pt)")
+    parser.add_argument("--normalize",         action="store_true", help="standardize input features before training")
+    parser.add_argument("--normalize-samples", action="store_true", help="divide each sample by its per-sample minimum value")
     main(parser.parse_args())

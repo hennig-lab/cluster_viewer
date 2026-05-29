@@ -6,12 +6,15 @@ import webbrowser
 from flask import Flask, jsonify, request, send_from_directory
 from channel_parser import collect_neuron_data
 from make_spikes_matrix import make_spikes_matrix
+from training.data_loader import get_neuron_feature
+from training.train import load_model_predictor
 
 app = Flask(__name__, static_folder="static")
 
 app.config["DATA_FILE"] = "neuron_data.json"
 app.config["EXCLUDE_FILE"] = "clusters_excluded.csv"
 app.config["EXPORT_ARGS"] = None
+app.config["MODEL_FILE"] = None
 
 # ---------------------------
 # Helpers
@@ -39,6 +42,14 @@ def save_exclusions(excluded):
         for fn, cid in sorted(excluded):
             writer.writerow([fn, cid])
 
+def _load_model():
+    if app.config["MODEL_FILE"] is None:
+        return None
+    path = app.config["MODEL_FILE"]
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Model file {path} not found")
+    return load_model_predictor(path)
+
 # ---------------------------
 # Routes
 # ---------------------------
@@ -48,8 +59,16 @@ def api_neurons():
     neurons = load_neurons()
     print(f"Loaded {len(neurons)} neurons from {app.config['DATA_FILE']}")
     excluded = load_exclusions()
+
+    if app.config["MODEL_FILE"] is not None:
+        model = _load_model()
+        if model is not None:
+            print(f"Loaded model from {app.config['MODEL_FILE']}")
     for n in neurons:
         n["excluded"] = (n["filename"], n["cluster_id"]) in excluded
+        if app.config["MODEL_FILE"] is not None:
+            n["model_feature"] = get_neuron_feature(n)
+            n["model_logit"] = model(n["model_feature"])
     return jsonify(neurons)
 
 @app.route("/api/toggle", methods=["POST"])
@@ -94,6 +113,7 @@ def root():
 if __name__ == "__main__":
     import argparse
     from threading import Timer
+    basedir = os.path.dirname(os.path.abspath(__file__))
 
     parser = argparse.ArgumentParser(description="Local viewer for neuron data.")
     parser.add_argument("--directory", default=None, help="Path to directory containing times.mat files")
@@ -105,6 +125,7 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("--keep_duplicates", action="store_true", help="Keep duplicates (if DER labels are included)")
     parser.add_argument("--skip_empty_channels", action="store_true", help="If set, skips channels without spikes (note this will affect channel indexing)")
+    parser.add_argument("--model-file", default=os.path.join(basedir, "training/model.pt"), help="Path to trained model file (.pt) for predictions")
 
     args = parser.parse_args()
 
