@@ -55,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const modelSpan = document.createElement('span');
             modelSpan.innerText = ` ${(n.model_prob * 100).toFixed(0)}%`;
             modelSpan.style.color = color;
-            titleEl.appendChild(document.createTextNode(`${filename} - c${n.cluster_id} (${n.firing_rate_hz.toFixed(1)} Hz)`));
             titleEl.appendChild(modelSpan);
         }
         titleEl.style.fontSize = '12px';
